@@ -4,7 +4,12 @@ import { config } from '../config.js';
 // old and new results stay distinguishable.
 export const PROMPT_VERSION = 'v1';
 
-const SENTIMENTS = ['positive', 'neutral', 'negative'];
+// The prompt plus the longest stored headline + summary is under 900 tokens.
+// Ollama's 4096 default reserves VRAM that an 8 GB card needs for the model
+// itself, and that reservation is multiplied by the number of parallel slots.
+const CONTEXT_TOKENS = 1024;
+
+const SENTIMENTS =['positive', 'neutral', 'negative'];
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -33,7 +38,7 @@ export async function analyzeSentiment({ title, summary }) {
       model: config.ollamaModel,
       stream: false,
       format: RESPONSE_SCHEMA,
-      options: { temperature: 0 },
+      options: { temperature: 0, num_ctx: CONTEXT_TOKENS },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Headline: ${title}\nSummary: ${summary || '(none)'}` },
