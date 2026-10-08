@@ -16,6 +16,10 @@ and demonstrate.
 - **No causal claims, anywhere** (UI text, SQL-generated text, comments, docs).
   Say "occurred alongside", never "caused" / "because of" / "due to". A test
   enforces this on event explanations.
+- **Indicators are descriptive, never advice.** Show sentiment, price trend and
+  news activity; no buy / sell / hold wording. The user asked for a "worth
+  buying" indicator on 2026-10-08 and, when shown the conflict with the brief,
+  chose the descriptive version.
 - **Do not overengineer.** No ORM, no migration framework, no queues, caches,
   microservices or schedulers. Add a table only when a real feature needs it.
 - **Candlesticks are never stored.** They are rendered from `price_history`.
@@ -49,7 +53,7 @@ Commands, all from `server/`:
 | `npm run smoke` | Check database, price provider, news provider, Ollama |
 | `npm run ingest:prices -- [--days=400] [SYM ...]` | Upsert daily candles |
 | `npm run ingest:news -- [--days=90] [--full] [SYM ...]` | Fetch news; resumes per stock |
-| `npm run analyze -- [--limit=500]` | Ollama sentiment for unanalysed articles; resumable |
+| `npm run analyze -- [--limit=500] [--concurrency=1]` | Ollama sentiment for unanalysed articles; resumable |
 | `npm run detect -- [SYM ...]` | Run `detect_events()` |
 | `npm run db:test` | Constraint and cascade checks (rolled back) |
 | `npm test` | API + detection tests against the configured database |
@@ -130,10 +134,18 @@ Done and committed (phases 0-5 of the plan):
 - Price ingestion: ~277 daily candles for each of 12 stocks.
 - News ingestion: ~33k articles, ~47.7k stock links, ~8.5k articles linked to
   more than one stock.
-- Sentiment pipeline; a 4,000-article `llama3.1:8b` run was started on
-  2026-10-08. Check coverage with
-  `SELECT model, count(*) FROM article_analysis GROUP BY 1;` and re-run
-  `npm run analyze` to continue, then `npm run detect`.
+- Sentiment pipeline. About 1,900 articles were analysed by `llama3.1:8b` as
+  of the evening of 2026-10-08, with a 3,200-article run still in progress
+  then (event-day articles first). It may not have finished. Check coverage
+  with `SELECT model, count(*) FROM article_analysis GROUP BY 1;`, re-run
+  `npm run analyze -- --limit=N` to continue, then `npm run detect` so events
+  pick up their average sentiment. (13 early rows from `qwen2.5-coder:7b` are
+  a pipeline trial and a small real example of the 1:N analysis design.)
+- Sentiment speed: `num_ctx` is 1024 in `providers/ollama.js`, which keeps the
+  model 100% on the 8 GB GPU at about 1 article per second (was 1.8 s each at
+  the 4096 default). Parallel slots (`OLLAMA_NUM_PARALLEL` 2 and 4) were
+  measured and gave no gain because the extra context spills to CPU, so
+  `--concurrency` defaults to 1. The whole ~33k backlog would take ~9 hours.
 - Event detection: 27 events across 11 stocks.
 - API: `GET /api/stocks[?q=]`, `/api/stocks/:symbol`, `/:symbol/prices`,
   `/:symbol/news`, `/:symbol/events`, `GET /api/events/:id`.
@@ -143,10 +155,119 @@ Done and committed (phases 0-5 of the plan):
 - Tests: 14 passing (9 API, 5 detection).
 
 Not yet confirmed: the event arrow markers on the chart were never checked
-visually (preview screenshots timed out). The `.vscode` start task was written
-but not executed.
+visually (preview screenshots timed out). The `.vscode` start task
+(Ctrl+Shift+B) was written but not executed.
+
+Operational lesson: stopping a background `npm run analyze` can leave its Node
+child running. Before starting another run, check for stray processes whose
+command line contains `analyze.js` and stop them. Two runs using different
+context sizes make Ollama reload the model on every request (about 8 s per
+article). Launch long runs as `node src/scripts/analyze.js ...` directly.
+
+## On hold - resume next session
+
+Agreed with the user on 2026-10-08 and deliberately not started. Pick up in
+this order. The full write-up of item 1 is in the session plan file
+(`~/.claude/plans/c-users-samar-onedrive-vit-ac-in-vit-db-sprightly-star.md`);
+this section is self-sufficient if that file is gone.
+
+### 1. Front-end redesign (next thing to do)
+
+User feedback: the front end is unclear, specifically the **sentiment
+display**, the **events section** and the **home page** (overall layout was
+not flagged). They want a clearer sentiment value with an at-a-glance
+indicator (descriptive, see Hard rules), mini charts on the home page, and a
+compare-stocks view.
+
+Design principles from the research done (IBM Carbon dashboards, PatternFly
+and Genesys sparkline guidance, the Hawk Eye and Contextifier projects):
+
+- Most important information first and largest; detail on demand.
+- Sparklines have no axes and always sit beside a label and a number; no zero
+  baseline for prices.
+- One meaning per colour. Green/red mean price up/down, so **sentiment gets
+  its own pair: blue = positive, orange = negative**, always with a label and
+  sign, never colour alone.
+- Sentiment goes in its own lane under the price chart on the same time axis,
+  aggregated per day. No dual-axis overlay.
+- Every sentiment figure states its window and coverage, e.g. "based on 38 of
+  240 articles, last 5 trading days", because it is a model's estimate over a
+  sample.
+
+Steps:
+
+1. **Mockup first.** Show the redesigned home and stock pages to the user for
+   approval before writing project code.
+2. **SQL + API.** New migration `005_signals.sql` with `v_stock_signal` (one
+   row per stock: 5-day average sentiment, the previous 5 days, a label and
+   trend via `CASE`, analysed/total article counts, 5- and 20-day return, news
+   activity vs the 20-day baseline, latest event). Endpoints: add signal
+   fields and a 30-close `sparkline` array to `GET /api/stocks`; signal fields
+   on `GET /api/stocks/:symbol`; new `GET /api/stocks/:symbol/sentiment`
+   (daily series from `v_stock_daily_metrics`); new
+   `GET /api/compare?symbols=A,B&from=` (max 4, % change from the first day
+   using `FIRST_VALUE(close) OVER (...)`).
+3. **Front end.**
+   - Shared: `SentimentGauge.jsx` (-1..+1 scale with marker, label, signed
+     value, trend arrow, coverage line), `Sparkline.jsx` (inline SVG), a
+     larger `SentimentBadge`.
+   - Home: "recent events" strip; stock table with sparkline, change, compact
+     gauge, news activity and event flag; sortable; pick up to 4 to compare.
+     This replaces the dashboard that was planned for phase 6.
+   - Stock page: "at a glance" strip (news sentiment, price trend, news
+     activity) with a one-line "descriptive, not advice" note; a daily
+     sentiment bar lane as its own pane in `CandleChart.jsx`; OHLC readout on
+     hover; events as scannable rows with aligned columns and the explanation
+     shown only when a row is selected; news feed with sentiment filter tabs
+     (the API already supports `?sentiment=`).
+   - Compare page at `/compare?symbols=`.
+   - Load the `dataviz` skill before writing chart code.
+4. **Coverage prerequisite.** The gauge and lane need analysed articles on
+   every stock-day, not just event days. `analyze.js` already orders by even
+   coverage per stock-day; keep running it until recent stock-days have about
+   5 analysed articles each (roughly 4,000 more articles, a bit over an hour).
+
+Budget: about 3-4 days. If time runs short, drop the compare page first.
+
+### 2. One-time Gemini backfill (deferred future fix)
+
+Purpose: clear the historical sentiment backlog quickly, then remove Gemini
+completely. Ollama stays the only permanent analyser; day to day only about
+350-400 new articles arrive, which Ollama handles in 6-7 minutes.
+
+- A temporary standalone script (`server/src/scripts/backfillGemini.js`), not
+  wired into `config.js`, `.env.example`, `smoke.js` or the tests.
+- The binding free-tier limit is requests per day, so it sends ~40 articles
+  per request and receives a JSON array (structured output), using the same
+  system prompt as Ollama (export `SYSTEM_PROMPT` and `SENTIMENTS` from
+  `providers/ollama.js`). Key goes in the `x-goog-api-key` header.
+- Validate every returned item; skip invalid or missing ones so they stay
+  pending. One multi-row insert per batch. Rows are tagged with the Gemini
+  model name, which permanently records how they were produced.
+- Wait and retry on a per-minute 429; stop cleanly on a daily-quota 429.
+- Permanent change needed alongside it: `analyze.js` should treat an article
+  as pending only if **no model** has analysed it (today it is per model, so
+  Ollama would redo Gemini's work), with a `--reanalyse` flag for the old
+  behaviour. The `--concurrency` flag can be removed at the same time.
+- Afterwards delete the script and the `GEMINI_API_KEY` line from `.env`.
+- Blocked on the user: a free key from aistudio.google.com/apikey and the real
+  requests-per-day / per-minute numbers shown in their AI Studio project.
+  Google does not publish fixed free-tier limits and third-party figures
+  conflict (roughly 20/day for Flash, 500-1,000/day for Flash-Lite). Free-tier
+  content is used to improve Google's products; acceptable for public headlines.
+
+### 3. Similar past incidents (later)
+
+For an event, describe how the same stock moved after its earlier events of
+the same direction (e.g. the following 1 and 5 trading days), from a
+`v_event_outcomes` view built with `LEAD()`. Descriptive only, with a
+small-sample caveat. Needs more history first: only about 54 trading days per
+stock are detectable with 90 days of news (`ingest:news --days=180 --full`).
 
 ## Remaining plan
+
+The front-end redesign above now comes first and absorbs the dashboard part of
+phase 6. The rest is unchanged.
 
 **Phase 6 - Watchlists and dashboard**
 - `middleware/currentUser.js` (demo user by email).
@@ -155,9 +276,10 @@ but not executed.
 - `v_trending` view: last 5 trading days per stock with each reason exposed as
   its own column (|return|, news vs baseline, event count) so the UI can show
   *why* a stock ranks.
-- `GET /api/dashboard`; turn `pages/Dashboard.jsx` (currently a stock list)
-  into watchlist movers + recent events + trending; add `pages/Watchlists.jsx`
-  and an add-to-watchlist button on the stock page.
+- Add `pages/Watchlists.jsx`, an add-to-watchlist button on the stock page, and
+  a watchlist filter on the redesigned home page. (`pages/Dashboard.jsx` is
+  currently a plain stock list; the redesign rebuilds it. `v_trending` may be
+  unnecessary once `v_stock_signal` exists: decide then.)
 
 **Phase 7 - DBMS showcase**
 - `alert` table (11th) + `trg_event_alert` AFTER INSERT trigger on
@@ -178,8 +300,8 @@ but not executed.
 - README update, ER diagram, normalisation write-up (1NF/2NF/3NF with the two
   documented exceptions: the event snapshot and the generated `search_vector`).
 
-**If time runs short, cut in this order:** alerts UI (keep the trigger), then
-trending, then the dashboard. Never cut the demo SQL file.
+**If time runs short, cut in this order:** the compare page, alerts UI (keep
+the trigger), then trending. Never cut the demo SQL file or the trigger.
 
 **Deferred on purpose:** intraday timeframes, topics, fundamentals, scheduling,
 login, LLM ticker extraction, Indian market, materialised views (only if a
