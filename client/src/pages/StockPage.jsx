@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApi } from '../api.js';
 import CandleChart from '../components/CandleChart.jsx';
+import NewsFeed from '../components/NewsFeed.jsx';
 import { formatPercent, formatPrice, signClass } from '../format.js';
 
 const RANGES = [
@@ -24,6 +25,7 @@ export default function StockPage() {
 
   const stock = useApi(`/stocks/${symbol}`);
   const prices = useApi(`/stocks/${symbol}/prices?from=${monthsAgo(range.months)}`);
+  const news = useApi(`/stocks/${symbol}/news`);
 
   if (stock.error) return <p className="message error">{stock.error.message}</p>;
   if (!stock.data) return <p className="message">Loading…</p>;
@@ -69,6 +71,14 @@ export default function StockPage() {
           <p className="message">No price data stored for this period.</p>
         )}
         <CandleChart candles={prices.data ?? []} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Recent news</h2>
+        </div>
+        {news.error && <p className="message error">{news.error.message}</p>}
+        {news.data && <NewsFeed articles={news.data} />}
       </section>
     </>
   );

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { badRequest, notFound } from '../middleware/errors.js';
+import * as news from '../queries/news.js';
 import * as stocks from '../queries/stocks.js';
 
 export const router = Router();
@@ -36,4 +37,25 @@ router.get('/:symbol/prices', async (req, res) => {
   const to = parseDate(req.query.to, 'to');
   if (from && to && from > to) throw badRequest('"from" must not be after "to".');
   res.json(await stocks.getPrices(req.stock.stock_id, from, to));
+});
+
+const SENTIMENTS = ['positive', 'neutral', 'negative'];
+const NEWS_LIMIT = { default: 50, max: 200 };
+
+router.get('/:symbol/news', async (req, res) => {
+  const from = parseDate(req.query.from, 'from');
+  const to = parseDate(req.query.to, 'to');
+  if (from && to && from > to) throw badRequest('"from" must not be after "to".');
+
+  const sentiment = req.query.sentiment || null;
+  if (sentiment && !SENTIMENTS.includes(sentiment)) {
+    throw badRequest(`"sentiment" must be one of: ${SENTIMENTS.join(', ')}.`);
+  }
+
+  const limit = req.query.limit === undefined ? NEWS_LIMIT.default : Number(req.query.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > NEWS_LIMIT.max) {
+    throw badRequest(`"limit" must be a whole number from 1 to ${NEWS_LIMIT.max}.`);
+  }
+
+  res.json(await news.getStockNews(req.stock.stock_id, { from, to, sentiment, limit }));
 });

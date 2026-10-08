@@ -71,6 +71,33 @@ test('GET /stocks/:symbol/prices honours from/to and rejects bad dates', async (
   assert.equal((await get(`/stocks/AAPL/prices?from=${to}&to=${from}`)).status, 400);
 });
 
+test('GET /stocks/:symbol/news returns newest-first articles and honours filters', async () => {
+  const { status, body } = await get('/stocks/DIS/news?limit=20');
+  assert.equal(status, 200);
+  assert.ok(body.length > 0 && body.length <= 20, 'DIS has stored news');
+  for (const [i, a] of body.entries()) {
+    assert.ok(a.title && a.url && a.source);
+    assert.ok('sentiment' in a && 'sentiment_score' in a);
+    if (i > 0) assert.ok(a.published_at <= body[i - 1].published_at, 'newest first');
+  }
+
+  const day = body[0].published_at.slice(0, 10);
+  const sameDay = (await get(`/stocks/DIS/news?from=${day}&to=${day}&limit=200`)).body;
+  assert.ok(sameDay.length > 0);
+  assert.ok(sameDay.every((a) => a.published_at.startsWith(day)));
+
+  const negative = (await get('/stocks/DIS/news?sentiment=negative')).body;
+  assert.ok(negative.every((a) => a.sentiment === 'negative'));
+});
+
+test('GET /stocks/:symbol/news rejects invalid parameters', async () => {
+  assert.equal((await get('/stocks/DIS/news?sentiment=bullish')).status, 400);
+  assert.equal((await get('/stocks/DIS/news?limit=0')).status, 400);
+  assert.equal((await get('/stocks/DIS/news?limit=abc')).status, 400);
+  assert.equal((await get('/stocks/DIS/news?limit=1000')).status, 400);
+  assert.equal((await get('/stocks/NOPE/news')).status, 404);
+});
+
 test('unknown routes return a JSON 404', async () => {
   const { status, body } = await get('/nope');
   assert.equal(status, 404);
