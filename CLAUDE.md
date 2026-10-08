@@ -134,12 +134,16 @@ Done and committed (phases 0-5 of the plan):
 - Price ingestion: ~277 daily candles for each of 12 stocks.
 - News ingestion: ~33k articles, ~47.7k stock links, ~8.5k articles linked to
   more than one stock.
-- Sentiment pipeline. About 1,900 articles were analysed by `llama3.1:8b` as
-  of the evening of 2026-10-08, with a 3,200-article run still in progress
-  then (event-day articles first). It may not have finished. Check coverage
-  with `SELECT model, count(*) FROM article_analysis GROUP BY 1;`, re-run
-  `npm run analyze -- --limit=N` to continue, then `npm run detect` so events
-  pick up their average sentiment. (13 early rows from `qwen2.5-coder:7b` are
+- Sentiment pipeline. **Analysis is paused** (2026-10-08, at the user's
+  request: they need the GPU for other work). Nothing is running and the
+  model is unloaded from the GPU. **Do not restart analysis without asking
+  the user first.** State when paused: 2,121 articles analysed by
+  `llama3.1:8b`, all of them event-day articles, out of 3,264 distinct
+  event-day articles (1,143 left), and ~33k articles overall. To resume:
+  `node src/scripts/analyze.js --limit=1200` from `server/` finishes the
+  event-day articles (about 20 minutes), then `npm run detect` so events pick
+  up their average sentiment. Check coverage with
+  `SELECT model, count(*) FROM article_analysis GROUP BY 1;`. (13 early rows from `qwen2.5-coder:7b` are
   a pipeline trial and a small real example of the 1:N analysis design.)
 - Sentiment speed: `num_ctx` is 1024 in `providers/ollama.js`, which keeps the
   model 100% on the 8 GB GPU at about 1 article per second (was 1.8 s each at
@@ -256,7 +260,22 @@ completely. Ollama stays the only permanent analyser; day to day only about
   conflict (roughly 20/day for Flash, 500-1,000/day for Flash-Lite). Free-tier
   content is used to improve Google's products; acceptable for public headlines.
 
-### 3. Similar past incidents (later)
+### 3. On/off control for intake and analysis (asked 2026-10-08, undecided)
+
+The user asked for a way to toggle news intake and Ollama analysis on and off.
+Nothing runs automatically today (both are manual scripts), so what is missing
+is a clean switch. Three options were offered and the user has not chosen yet:
+
+1. Start/stop commands plus VS Code tasks, with a graceful stop that lets the
+   current article finish (recommended; also prevents stray processes).
+2. A settings table with `analysis_enabled` / `ingestion_enabled` flags that
+   the scripts check while running (adds a 12th table).
+3. Toggle switches and a progress readout on the website, built on option 2;
+   the API would have to start and stop background jobs (about a day).
+
+Ask which one they want before building.
+
+### 4. Similar past incidents (later)
 
 For an event, describe how the same stock moved after its earlier events of
 the same direction (e.g. the following 1 and 5 trading days), from a
