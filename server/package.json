@@ -1,0 +1,23 @@
+{
+  "name": "informed-trades-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test",
+    "migrate": "node src/scripts/migrate.js",
+    "db:test": "node src/scripts/runSql.js ../db/tests/constraints.sql",
+    "smoke": "node src/scripts/smoke.js",
+    "ingest:prices": "node src/scripts/ingestPrices.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.23.1",
+    "yahoo-finance2": "^4.0.3"
+  }
+}
