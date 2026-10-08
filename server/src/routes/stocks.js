@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { badRequest, notFound } from '../middleware/errors.js';
+import * as events from '../queries/events.js';
 import * as news from '../queries/news.js';
 import * as stocks from '../queries/stocks.js';
 
@@ -39,7 +40,11 @@ router.get('/:symbol/prices', async (req, res) => {
   res.json(await stocks.getPrices(req.stock.stock_id, from, to));
 });
 
-const SENTIMENTS = ['positive', 'neutral', 'negative'];
+router.get('/:symbol/events', async (req, res) => {
+  res.json(await events.getStockEvents(req.stock.stock_id));
+});
+
+const SENTIMENTS =['positive', 'neutral', 'negative'];
 const NEWS_LIMIT = { default: 50, max: 200 };
 
 router.get('/:symbol/news', async (req, res) => {

@@ -15,7 +15,8 @@
     "smoke": "node src/scripts/smoke.js",
     "ingest:prices": "node src/scripts/ingestPrices.js",
     "ingest:news": "node src/scripts/ingestNews.js",
-    "analyze": "node src/scripts/analyze.js"
+    "analyze": "node src/scripts/analyze.js",
+    "detect": "node src/scripts/detect.js"
   },
   "dependencies": {
     "express": "^5.2.1",

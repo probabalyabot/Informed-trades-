@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApi } from '../api.js';
 import CandleChart from '../components/CandleChart.jsx';
+import EventTimeline from '../components/EventTimeline.jsx';
 import NewsFeed from '../components/NewsFeed.jsx';
 import { formatPercent, formatPrice, signClass } from '../format.js';
 
@@ -19,17 +20,30 @@ function monthsAgo(months) {
   return d.toISOString().slice(0, 10);
 }
 
+// Keyed by symbol so the selected range and event reset when the stock changes.
 export default function StockPage() {
   const { symbol } = useParams();
-  const [range, setRange] = useState(RANGES[2]);
+  return <StockView key={symbol} symbol={symbol} />;
+}
+
+function StockView({ symbol }) {
+  const [range, setRange] = useState(RANGES[1]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   const stock = useApi(`/stocks/${symbol}`);
   const prices = useApi(`/stocks/${symbol}/prices?from=${monthsAgo(range.months)}`);
-  const news = useApi(`/stocks/${symbol}/news`);
+  const events = useApi(`/stocks/${symbol}/events`);
+  const recentNews = useApi(`/stocks/${symbol}/news`);
+  const selectedEvent = useApi(selectedEventId === null ? null : `/events/${selectedEventId}`);
 
   if (stock.error) return <p className="message error">{stock.error.message}</p>;
   if (!stock.data) return <p className="message">Loading…</p>;
   const s = stock.data;
+
+  const showingEvent = selectedEventId !== null;
+  const news = showingEvent
+    ? { error: selectedEvent.error, articles: selectedEvent.data?.articles }
+    : { error: recentNews.error, articles: recentNews.data };
 
   return (
     <>
@@ -70,15 +84,48 @@ export default function StockPage() {
         {prices.data?.length === 0 && (
           <p className="message">No price data stored for this period.</p>
         )}
-        <CandleChart candles={prices.data ?? []} />
+        <CandleChart
+          candles={prices.data ?? []}
+          events={events.data ?? []}
+          selectedEventId={selectedEventId}
+        />
       </section>
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Recent news</h2>
+          <h2>Detected events</h2>
+        </div>
+        <p className="note">
+          An event marks a day when an unusually large price move occurred alongside unusually
+          high news volume. It records that the two happened together, not that one caused the
+          other.
+        </p>
+        {events.error && <p className="message error">{events.error.message}</p>}
+        {events.data && (
+          <EventTimeline
+            events={events.data}
+            selectedEventId={selectedEventId}
+            onSelect={setSelectedEventId}
+          />
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>
+            {showingEvent
+              ? `News on the event day${selectedEvent.data ? ` · ${selectedEvent.data.event_date}` : ''}`
+              : 'Recent news'}
+          </h2>
+          {showingEvent && (
+            <button type="button" className="link" onClick={() => setSelectedEventId(null)}>
+              Show recent news
+            </button>
+          )}
         </div>
         {news.error && <p className="message error">{news.error.message}</p>}
-        {news.data && <NewsFeed articles={news.data} />}
+        {!news.error && !news.articles && <p className="message">Loading…</p>}
+        {news.articles && <NewsFeed articles={news.articles} />}
       </section>
     </>
   );

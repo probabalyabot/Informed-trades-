@@ -98,6 +98,30 @@ test('GET /stocks/:symbol/news rejects invalid parameters', async () => {
   assert.equal((await get('/stocks/NOPE/news')).status, 404);
 });
 
+test('events are listed per stock and include their articles', async () => {
+  const stocks = (await get('/stocks')).body;
+  let event;
+  for (const s of stocks) {
+    const list = (await get(`/stocks/${s.symbol}/events`)).body;
+    assert.ok(Array.isArray(list));
+    if (list.length) {
+      event = list[0];
+      assert.equal(event.symbol, s.symbol);
+      break;
+    }
+  }
+  assert.ok(event, 'at least one event is stored (npm run detect)');
+  assert.match(event.event_date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(event.explanation.includes('occurred alongside'));
+
+  const detail = (await get(`/events/${event.event_id}`)).body;
+  assert.equal(detail.event_id, event.event_id);
+  assert.equal(detail.articles.length, detail.news_count);
+
+  assert.equal((await get('/events/999999999')).status, 404);
+  assert.equal((await get('/events/abc')).status, 400);
+});
+
 test('unknown routes return a JSON 404', async () => {
   const { status, body } = await get('/nope');
   assert.equal(status, 404);

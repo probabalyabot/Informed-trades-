@@ -238,6 +238,72 @@ main {
   border-style: dashed;
 }
 
+/* Events */
+.note {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.events button {
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.events button:hover {
+  border-color: var(--muted);
+}
+.events button.selected {
+  border-color: var(--accent);
+  background: rgba(245, 165, 36, 0.06);
+}
+.event-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.event-head .badge {
+  margin-left: auto;
+}
+.events p {
+  margin-top: 2px;
+  font-size: 13px;
+}
+.badge.severity-high {
+  color: var(--accent);
+}
+.badge.severity-medium {
+  color: var(--text);
+}
+.badge.severity-low {
+  color: var(--muted);
+}
+button.link {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+button.link:hover {
+  text-decoration: underline;
+}
+
 /* Tables */
 table {
   width: 100%;
