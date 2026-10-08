@@ -1,0 +1,33 @@
+{
+  // Press Ctrl+Shift+B to run "Start Informed Trades": it starts the API and
+  // the UI side by side in the terminal panel and opens the site in the browser.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "informed-trades", "panel": "dedicated" }
+    },
+    {
+      "label": "UI",
+      "type": "shell",
+      // --open makes Vite open http://localhost:5173 once it is ready.
+      "command": "npm run dev -- --open",
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "informed-trades", "panel": "dedicated" }
+    },
+    {
+      "label": "Start Informed Trades",
+      "dependsOn": ["API", "UI"],
+      "dependsOrder": "parallel",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    }
+  ]
+}
