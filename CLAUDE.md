@@ -12,7 +12,7 @@ and demonstrate.
 ## Hard rules
 
 - **Research tool, not a trading tool.** No trade execution, recommendations,
-  price prediction or portfolio features.
+  price prediction or portfolio features, however it may be considered as it as potential to reommend stocks depending on analysis - gotta figure out legally how to proceed
 - **No causal claims, anywhere** (UI text, SQL-generated text, comments, docs).
   Say "occurred alongside", never "caused" / "because of" / "due to". A test
   enforces this on event explanations.
@@ -30,7 +30,7 @@ and demonstrate.
 
 PostgreSQL 18 (native Windows service, no Docker) · Node 24 / Express 5 with
 raw SQL through `pg` · React 19 + Vite + `lightweight-charts` v5 · Ollama
-(`llama3.1:8b`, local, RTX 5060 8 GB).
+(`llama3.1:8b`, local, RTX 5060 8 GB laptop gpu).
 
 Data sources: Yahoo Finance via `yahoo-finance2` (prices, no key) and Finnhub
 `company-news` (news, free key, 60 calls/min).
