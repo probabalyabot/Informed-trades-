@@ -36,15 +36,29 @@ Requirements: Node 20.12+, PostgreSQL 16+, Ollama.
 | `npm run migrate` | Applies new files in `db/migrations`, then re-runs the idempotent seeds |
 | `npm run db:test` | Runs `db/tests/constraints.sql` (integrity checks, rolled back afterwards) |
 | `npm run ingest:prices -- [--days=400] [SYMBOL ...]` | Upserts daily OHLCV candles |
+| `npm run ingest:news -- [--days=90] [--full] [SYMBOL ...]` | Fetches news and links it to stocks |
+| `npm run analyze -- [--limit=500]` | Sentiment analysis of stored articles with the local Ollama model |
+| `npm run detect -- [SYMBOL ...]` | Detects news-price events |
 | `npm run smoke` | Verifies every external dependency responds |
-| `npm test` | API tests against the configured database |
+| `npm test` | API, SQL and validation tests against the configured database |
+
+From `client/`: `npm test` runs the unit tests for the UI's pure helpers.
+
+## Pages
+
+- **Overview** (`/`): recent events, and every stock with a 30-day sparkline, price change, news sentiment, news activity and latest event. Sortable; tick 2 to 4 stocks to compare.
+- **Stock** (`/stocks/:symbol`): an at-a-glance summary, candlesticks with event markers and a daily sentiment lane, the detected events, and the news feed with sentiment filters.
+- **Compare** (`/compare?symbols=AAPL,MSFT`): price change of up to 4 stocks on one scale.
+
+Sentiment, trend and activity figures describe recent data. They are not forecasts or advice.
 
 ## Layout
 
-- `db/migrations` — schema, indexes (later: views, functions, trigger)
+- `db/migrations` — schema, indexes, views and the `detect_events()` function
 - `db/seed` — stocks and the demo user
 - `db/tests` — constraint and cascade tests
 - `server/src/queries` — all SQL used by the API, one file per resource
 - `server/src/providers` — external data sources (Yahoo prices, Finnhub news, Ollama)
-- `server/src/scripts` — command-line jobs (migrate, ingest, smoke)
-- `client/src` — React UI
+- `server/src/scripts` — command-line jobs (migrate, ingest, analyze, detect, smoke)
+- `server/test` — API, event-detection, signal-view and validation tests
+- `client/src` — React UI (`lib/` holds the pure helpers covered by `client/test`)

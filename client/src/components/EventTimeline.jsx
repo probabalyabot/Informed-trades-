@@ -1,35 +1,51 @@
 import { formatPercent, signClass } from '../format.js';
+import { averageTone } from '../lib/sentiment.js';
+import SentimentBadge from './SentimentBadge.jsx';
 
-// Lists detected events, newest first. Selecting one tells the page to show
-// that event's articles; selecting it again clears the selection.
+// Detected events as scannable rows with aligned columns, newest first.
+// Selecting a row reveals its description and tells the page to show that
+// day's articles; selecting it again clears the selection.
 export default function EventTimeline({ events, selectedEventId, onSelect }) {
   if (events.length === 0) {
     return <p className="message">No events detected for this stock in the stored period.</p>;
   }
 
   return (
-    <ul className="events">
-      {events.map((e) => (
-        <li key={e.event_id}>
-          <button
-            type="button"
-            className={e.event_id === selectedEventId ? 'selected' : ''}
-            aria-pressed={e.event_id === selectedEventId}
-            onClick={() => onSelect(e.event_id === selectedEventId ? null : e.event_id)}
-          >
-            <div className="event-head">
-              <strong>{e.event_date}</strong>
-              <span className={signClass(e.price_change_pct)}>{formatPercent(e.price_change_pct)}</span>
-              <span className="muted">
-                {e.news_count} articles
-                {e.news_multiple != null && ` (${e.news_multiple}× usual)`}
-              </span>
-              <span className={`badge severity-${e.severity}`}>{e.severity}</span>
-            </div>
-            <p className="muted">{e.explanation}</p>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className="events">
+      <div className="event-row event-columns" aria-hidden="true">
+        <span>Date</span>
+        <span className="num">Price move</span>
+        <span>News volume</span>
+        <span>Sentiment that day</span>
+        <span>Severity</span>
+      </div>
+      <ul>
+        {events.map((e) => {
+          const selected = e.event_id === selectedEventId;
+          return (
+            <li key={e.event_id} className={selected ? 'selected' : ''}>
+              <button
+                type="button"
+                className="event-row"
+                aria-expanded={selected}
+                onClick={() => onSelect(selected ? null : e.event_id)}
+              >
+                <strong>{e.event_date}</strong>
+                <span className={`num ${signClass(e.price_change_pct)}`}>
+                  {formatPercent(e.price_change_pct)}
+                </span>
+                <span>
+                  {e.news_count} articles
+                  {e.news_multiple != null && <span className="muted"> · {e.news_multiple}× usual</span>}
+                </span>
+                <SentimentBadge sentiment={averageTone(e.avg_sentiment)} score={e.avg_sentiment} />
+                <span className={`badge severity-${e.severity}`}>{e.severity}</span>
+              </button>
+              {selected && <p className="event-explanation">{e.explanation}</p>}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
