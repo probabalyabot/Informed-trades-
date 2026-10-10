@@ -2,13 +2,14 @@ import { query } from '../db.js';
 
 // Each stock with its latest close and the change from the previous close.
 // LAG() runs over the stock's whole history before LIMIT keeps the newest row.
-const STOCK_WITH_QUOTE = `
-  SELECT s.stock_id, s.symbol, s.company_name, s.exchange, s.sector,
+export const QUOTE_COLUMNS = `
+         s.stock_id, s.symbol, s.company_name, s.exchange, s.sector,
          q.period_start AS last_date,
          q.close        AS last_close,
          q.prev_close,
-         round((q.close / q.prev_close - 1) * 100, 2) AS change_pct
-  FROM stock s
+         round((q.close / q.prev_close - 1) * 100, 2) AS change_pct`;
+
+export const QUOTE_JOIN = `
   LEFT JOIN LATERAL (
       SELECT p.period_start, p.close,
              LAG(p.close) OVER (ORDER BY p.period_start) AS prev_close
@@ -17,6 +18,8 @@ const STOCK_WITH_QUOTE = `
       ORDER BY p.period_start DESC
       LIMIT 1
   ) q ON true`;
+
+const STOCK_WITH_QUOTE = `SELECT ${QUOTE_COLUMNS} FROM stock s ${QUOTE_JOIN}`;
 
 export async function searchStocks(q) {
   const { rows } = await query(

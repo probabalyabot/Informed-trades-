@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { badRequest, notFound } from '../middleware/errors.js';
 import * as events from '../queries/events.js';
 import * as news from '../queries/news.js';
+import * as signals from '../queries/signals.js';
 import * as stocks from '../queries/stocks.js';
 
 export const router = Router();
@@ -9,12 +10,12 @@ export const router = Router();
 // Accepts a missing value (null) or a real calendar date in YYYY-MM-DD form.
 export function parseDate(value, name) {
   if (value === undefined || value === '') return null;
-  const valid =
-    typeof value === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
-  if (!valid) throw badRequest(`"${name}" must be a date in YYYY-MM-DD format.`);
-  return value;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const date = new Date(`${value}T00:00:00Z`);
+    // Month 13 gives an invalid date; February 31 silently rolls into March.
+    if (!Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value) return value;
+  }
+  throw badRequest(`"${name}" must be a date in YYYY-MM-DD format.`);
 }
 
 // Resolves :symbol once for every /stocks/:symbol/... route.
@@ -29,8 +30,15 @@ router.get('/', async (req, res) => {
   res.json(await stocks.searchStocks(q));
 });
 
-router.get('/:symbol', (req, res) => {
-  res.json(req.stock);
+router.get('/:symbol', async (req, res) => {
+  res.json({ ...req.stock, signal: await signals.getStockSignal(req.stock.stock_id) });
+});
+
+router.get('/:symbol/sentiment', async (req, res) => {
+  const from = parseDate(req.query.from, 'from');
+  const to = parseDate(req.query.to, 'to');
+  if (from && to && from > to) throw badRequest('"from" must not be after "to".');
+  res.json(await signals.getDailySentiment(req.stock.stock_id, from, to));
 });
 
 router.get('/:symbol/prices', async (req, res) => {

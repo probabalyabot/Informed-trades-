@@ -8,6 +8,15 @@ export async function getStockEvents(stockId) {
   return rows;
 }
 
+// The newest events across all stocks.
+export async function getRecentEvents(limit) {
+  const { rows } = await query(
+    `SELECT * FROM v_event_summary ORDER BY event_date DESC, event_id DESC LIMIT $1`,
+    [limit],
+  );
+  return rows;
+}
+
 export async function getEvent(eventId) {
   const { rows } = await query(`SELECT * FROM v_event_summary WHERE event_id = $1`, [eventId]);
   return rows[0];
