@@ -14,7 +14,7 @@ const UP = '#26a69a';
 const DOWN = '#ef5350';
 const EVENT = '#f5a524';
 const EVENT_SELECTED = '#ffffff';
-const SENTIMENT = { positive: '#3987e5', negative: '#d95926', mixed: '#8a95a5' };
+const SENTIMENT = { positive: '#3987e5', negative: '#d95926', mixed: '#8f8f8f' };
 
 const SENTIMENT_PANE_HEIGHT = 96;
 // A day's average resting on fewer analysed articles than this is drawn faded.
@@ -50,12 +50,12 @@ export default function CandleChart({ candles, sentiment = [], events = [], sele
       autoSize: true,
       layout: {
         background: { color: 'transparent' },
-        textColor: '#9aa4b2',
-        panes: { separatorColor: '#2a3442', enableResize: false },
+        textColor: '#8f8f8f',
+        panes: { separatorColor: '#2a2a2a', enableResize: false },
       },
-      grid: { vertLines: { color: '#1c2430' }, horzLines: { color: '#1c2430' } },
-      rightPriceScale: { borderColor: '#2a3442' },
-      timeScale: { borderColor: '#2a3442' },
+      grid: { vertLines: { color: '#161616' }, horzLines: { color: '#161616' } },
+      rightPriceScale: { borderColor: '#2a2a2a' },
+      timeScale: { borderColor: '#2a2a2a' },
       // Leave the mouse wheel to the page; the chart sits in a long scrolling
       // page and would otherwise swallow every scroll that passes over it.
       handleScroll: { mouseWheel: false },

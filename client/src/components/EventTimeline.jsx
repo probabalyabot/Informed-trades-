@@ -1,6 +1,7 @@
 import { formatPercent, signClass } from '../format.js';
 import { averageTone } from '../lib/sentiment.js';
 import SentimentBadge from './SentimentBadge.jsx';
+import SeverityTag from './SeverityTag.jsx';
 
 // Detected events as scannable rows with aligned columns, newest first.
 // Selecting a row reveals its description and tells the page to show that
@@ -39,7 +40,7 @@ export default function EventTimeline({ events, selectedEventId, onSelect }) {
                   {e.news_multiple != null && <span className="muted"> · {e.news_multiple}× usual</span>}
                 </span>
                 <SentimentBadge sentiment={averageTone(e.avg_sentiment)} score={e.avg_sentiment} />
-                <span className={`badge severity-${e.severity}`}>{e.severity}</span>
+                <SeverityTag severity={e.severity} />
               </button>
               {selected && <p className="event-explanation">{e.explanation}</p>}
             </li>

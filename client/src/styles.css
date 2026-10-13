@@ -1,9 +1,9 @@
 :root {
-  --bg: #0b0f14;
-  --panel: #121820;
-  --border: #1f2935;
-  --text: #e6ebf2;
-  --muted: #8a95a5;
+  --bg: #000000;
+  --panel: #0a0a0a;
+  --border: #2a2a2a;
+  --text: #ededed;
+  --muted: #8f8f8f;
   --accent: #f5a524;
 
   /* One meaning per colour. Green/red: price up/down. */
@@ -13,7 +13,11 @@
      mark is never read as a falling price. */
   --sent-pos: #3987e5;
   --sent-neg: #d95926;
-  --sent-mid: #8a95a5;
+  --sent-mid: #8f8f8f;
+  /* Event severity: how unusual the day was, not whether it was good news. */
+  --sev-low: #22c55e;
+  --sev-medium: #eab308;
+  --sev-high: #f04438;
 
   color-scheme: dark;
 }
@@ -132,7 +136,6 @@ main {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
   padding: 16px 18px;
   min-width: 0;
 }
@@ -182,7 +185,6 @@ button.primary {
   padding: 5px 14px;
   background: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 4px;
   color: #1a1204;
   font-weight: 600;
   cursor: pointer;
@@ -203,7 +205,6 @@ button.primary:disabled {
   padding: 3px 10px;
   background: none;
   border: 1px solid var(--border);
-  border-radius: 4px;
   color: var(--muted);
   cursor: pointer;
 }
@@ -230,7 +231,6 @@ button.primary:disabled {
   padding: 7px 10px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
   color: var(--text);
   font: inherit;
 }
@@ -246,7 +246,6 @@ button.primary:disabled {
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
 }
 .search-results li.muted {
   padding: 6px 8px;
@@ -256,7 +255,6 @@ button.primary:disabled {
   padding: 6px 8px;
   background: none;
   border: 0;
-  border-radius: 3px;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -272,7 +270,6 @@ button.primary:disabled {
   gap: 6px;
   padding: 1px 9px;
   border: 1px solid var(--border);
-  border-radius: 10px;
   font-size: 12px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -285,7 +282,6 @@ button.primary:disabled {
 .badge .dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
   background: var(--sent-mid);
 }
 .badge.positive .dot {
@@ -294,23 +290,50 @@ button.primary:disabled {
 .badge.negative .dot {
   background: var(--sent-neg);
 }
-.badge.severity-high {
-  border-color: var(--accent);
-  color: var(--accent);
+.badge.severity {
+  --tone: var(--sev-low);
+  border-color: var(--tone);
+  color: var(--tone);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
 }
 .badge.severity-medium {
-  border-color: var(--muted);
+  --tone: var(--sev-medium);
 }
-.badge.severity-low {
-  color: var(--muted);
+.badge.severity-high {
+  --tone: var(--sev-high);
+}
+/* One, two or three filled bars repeat the level, so it never rests on colour alone. */
+.badge .level {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+.badge .level i {
+  width: 3px;
+  background: var(--tone);
+  opacity: 0.25;
+}
+.badge .level i:nth-child(1) {
+  height: 4px;
+}
+.badge .level i:nth-child(2) {
+  height: 7px;
+}
+.badge .level i:nth-child(3) {
+  height: 10px;
+}
+.badge .level i.on {
+  opacity: 1;
 }
 
 /* Sentiment gauge */
 .gauge-track {
   position: relative;
   height: 8px;
-  border-radius: 4px;
-  background: #1c2531;
+  background: #1a1a1a;
   --tone: var(--sent-mid);
 }
 .gauge-track.positive {
@@ -334,7 +357,6 @@ button.primary:disabled {
   top: 0;
   bottom: 0;
   background: var(--tone);
-  border-radius: 4px;
 }
 .gauge-marker {
   position: absolute;
@@ -342,7 +364,6 @@ button.primary:disabled {
   width: 4px;
   height: 16px;
   margin-left: -2px;
-  border-radius: 2px;
   background: var(--text);
   box-shadow: 0 0 0 2px var(--panel);
 }
@@ -402,7 +423,6 @@ button.primary:disabled {
 .tile {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
   padding: 14px 16px;
 }
 .tile h2 {
@@ -480,7 +500,6 @@ button.primary:disabled {
   width: 10px;
   height: 10px;
   margin: 0 5px 0 8px;
-  border-radius: 2px;
   background: var(--sent-mid);
   vertical-align: baseline;
 }
@@ -611,7 +630,6 @@ input[type='checkbox']:disabled {
   justify-items: start;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
   color: var(--text);
   font-size: 13px;
 }
@@ -726,7 +744,6 @@ input[type='checkbox']:disabled {
   padding: 4px 12px;
   background: none;
   border: 1px solid var(--border);
-  border-radius: 14px;
   color: var(--muted);
   cursor: pointer;
 }

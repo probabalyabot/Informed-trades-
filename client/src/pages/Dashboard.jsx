@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '../api.js';
 import SentimentGauge from '../components/SentimentGauge.jsx';
+import SeverityTag from '../components/SeverityTag.jsx';
 import Sparkline from '../components/Sparkline.jsx';
 import { formatMultiple, formatPercent, formatPrice, signClass } from '../format.js';
 import { MAX_COMPARE, MIN_COMPARE, sortStocks, toggleSelection } from '../lib/stocks.js';
@@ -29,7 +30,7 @@ function RecentEvents({ events }) {
                 {e.news_count} articles
                 {e.news_multiple != null && ` · ${e.news_multiple}× usual`}
               </span>
-              <span className={`badge severity-${e.severity}`}>{e.severity} severity</span>
+              <SeverityTag severity={e.severity} label={`${e.severity} severity`} />
             </Link>
           </li>
         ))}
@@ -150,9 +151,8 @@ export default function Dashboard() {
                       {g?.latest_event_date ? (
                         <span>
                           {g.latest_event_date}{' '}
-                          <span className="muted">
-                            {g.latest_event_direction === 'up' ? '▲' : '▼'} {g.latest_event_severity}
-                          </span>
+                          <span className="muted">{g.latest_event_direction === 'up' ? '▲' : '▼'}</span>{' '}
+                          <SeverityTag severity={g.latest_event_severity} />
                         </span>
                       ) : (
                         <span className="muted">none</span>

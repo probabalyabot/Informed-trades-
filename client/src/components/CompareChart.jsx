@@ -21,10 +21,10 @@ export default function CompareChart({ series, slots }) {
   useEffect(() => {
     const chart = createChart(containerRef.current, {
       autoSize: true,
-      layout: { background: { color: 'transparent' }, textColor: '#9aa4b2' },
-      grid: { vertLines: { color: '#1c2430' }, horzLines: { color: '#1c2430' } },
-      rightPriceScale: { borderColor: '#2a3442' },
-      timeScale: { borderColor: '#2a3442' },
+      layout: { background: { color: 'transparent' }, textColor: '#8f8f8f' },
+      grid: { vertLines: { color: '#161616' }, horzLines: { color: '#161616' } },
+      rightPriceScale: { borderColor: '#2a2a2a' },
+      timeScale: { borderColor: '#2a2a2a' },
       localization: { priceFormatter: percent },
       // Leave the mouse wheel to the page (see CandleChart).
       handleScroll: { mouseWheel: false },
@@ -61,7 +61,7 @@ export default function CompareChart({ series, slots }) {
       line.setData(s.points.map((p) => ({ time: p.time, value: p.change_pct })));
       if (index === 0) {
         line.createPriceLine({
-          price: 0, color: '#5b6675', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '',
+          price: 0, color: '#5c5c5c', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '',
         });
       }
       linesRef.current.set(s.symbol, line);
