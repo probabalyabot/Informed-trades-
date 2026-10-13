@@ -1,7 +1,7 @@
 // Runs sentiment analysis on stored articles with the local Ollama model.
-// Usage: npm run analyze -- [--limit=500] [--concurrency=1]
-// Only articles with no analysis for the current model + prompt version are
-// processed, so the job can be stopped and restarted at any time.
+// Usage: npm run analyze -- [--limit=500] [--reanalyse]
+// Only articles that no model has analysed yet (for the current prompt
+// version) are processed, so the job can be stopped and restarted at any time.
 import { config } from '../config.js';
 import { pool } from '../db.js';
 import { PROMPT_VERSION, analyzeSentiment } from '../providers/ollama.js';
@@ -10,6 +10,8 @@ const args = process.argv.slice(2);
 const option = (name, fallback) =>
   Number(args.find((a) => a.startsWith(`--${name}=`))?.split('=')[1]) || fallback;
 const limit = option('limit', 500);
+// Analyse articles again even if another model already has (to compare models).
+const reanalyse = args.includes('--reanalyse');
 // Requests sent to Ollama at once. Extra requests only help when the Ollama
 // server runs with OLLAMA_NUM_PARALLEL > 1 AND the model still fits in VRAM
 // with that many context slots. On an 8 GB card with an 8B model it does not
@@ -35,7 +37,10 @@ const PENDING = `
   JOIN news_article a USING (article_id)
   WHERE NOT EXISTS (
       SELECT 1 FROM article_analysis x
-      WHERE x.article_id = a.article_id AND x.model = $1 AND x.prompt_version = $2
+      WHERE x.article_id = a.article_id AND x.prompt_version = $2
+        -- By default any model's analysis counts, so work is never repeated;
+        -- with --reanalyse only this model's own rows count.
+        AND (NOT $4::boolean OR x.model = $1)
   )
   GROUP BY a.article_id
   ORDER BY EXISTS (SELECT 1 FROM event_article ea WHERE ea.article_id = a.article_id) DESC,
@@ -51,7 +56,7 @@ const INSERT = `
 
 async function main() {
   const model = config.ollamaModel;
-  const { rows: pending } = await pool.query(PENDING, [model, PROMPT_VERSION, limit]);
+  const { rows: pending } = await pool.query(PENDING, [model, PROMPT_VERSION, limit, reanalyse]);
   console.log(`${pending.length} articles to analyse with ${model} (prompt ${PROMPT_VERSION})`);
 
   const started = Date.now();

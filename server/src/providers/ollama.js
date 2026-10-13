@@ -9,7 +9,7 @@ export const PROMPT_VERSION = 'v1';
 // itself, and that reservation is multiplied by the number of parallel slots.
 const CONTEXT_TOKENS = 1024;
 
-const SENTIMENTS =['positive', 'neutral', 'negative'];
+export const SENTIMENTS =['positive', 'neutral', 'negative'];
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -21,7 +21,7 @@ const RESPONSE_SCHEMA = {
   required: ['sentiment', 'score', 'confidence'],
 };
 
-const SYSTEM_PROMPT = `You classify the sentiment of financial news toward the company it is about.
+export const SYSTEM_PROMPT = `You classify the sentiment of financial news toward the company it is about.
 Return JSON with:
 - sentiment: "positive", "neutral" or "negative" for the company's business outlook
 - score: a number from -1 (very negative) to 1 (very positive); 0 is neutral
