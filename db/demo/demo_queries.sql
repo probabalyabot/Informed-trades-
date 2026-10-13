@@ -175,3 +175,28 @@ FROM price_history ORDER BY period_start DESC LIMIT 1
 ON CONFLICT (stock_id, timeframe, period_start) DO UPDATE SET volume = EXCLUDED.volume
 RETURNING stock_id, period_start, volume AS volume_now_1;
 ROLLBACK;
+
+-- Q22 Trigger: inserting an event creates alerts by itself.
+--     This block never inserts into alert; trg_event_alert does. AAPL is on the
+--     demo watchlist and AMD is not, so only the AAPL event produces an alert.
+--     Run the whole block together; it rolls back.
+BEGIN;
+INSERT INTO news_price_event (stock_id, event_date, price_change_pct, news_count, baseline_news_avg, direction, severity)
+SELECT stock_id, DATE '2030-01-01', 5.0, 10, 2, 'up', 'medium'
+FROM stock WHERE symbol IN ('AAPL', 'AMD');
+SELECT s.symbol, e.event_date, u.name AS alerted_user, a.created_at, a.read_at
+FROM news_price_event e
+JOIN stock s USING (stock_id)
+LEFT JOIN alert a USING (event_id)
+LEFT JOIN app_user u USING (user_id)
+WHERE e.event_date = DATE '2030-01-01'
+ORDER BY s.symbol;
+ROLLBACK;
+
+-- Q23 What the trigger has written so far: the demo user's alerts
+SELECT a.alert_id, e.symbol, e.event_date, e.severity,
+       CASE WHEN a.read_at IS NULL THEN 'unread' ELSE 'read' END AS status,
+       e.explanation
+FROM alert a
+JOIN v_event_summary e USING (event_id)
+ORDER BY e.event_date DESC;
